@@ -4,6 +4,16 @@ apply plugin: 'application'
 //define main class
 mainClassName = 'SimpleServer'
 
+repositories {
+  mavenCentral()
+  jcenter()
+}
+
+dependencies{
+  compile 'org.json:json:20171018' // org.json
+   compile group: 'com.googlecode.json-simple', name: 'json-simple', version: '1.1.1'
+}
+
 task SimpleWebServer(type: JavaExec) {
   group 'http'
   description 'Simple Http Demo'
