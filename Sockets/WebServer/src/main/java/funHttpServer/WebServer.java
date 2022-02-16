@@ -25,6 +25,9 @@ import java.util.Random;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.nio.charset.Charset;
+import java.util.Scanner;
+import org.json.*;  
+ 
 
 class WebServer {
   public static void main(String args[]) {
@@ -198,24 +201,58 @@ class WebServer {
           // wrong data is given this just crashes
 
           Map<String, String> query_pairs = new LinkedHashMap<String, String>();
-          // extract path parameters
-          query_pairs = splitQuery(request.replace("multiply?", ""));
+          
+          //saves replaced string 
+          String r = request.replace("multiply?", "");
+          //checks for empty parameters
+          if(r.length() == 0){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("You did not pass parameters...");
+          }
+          //if parameters the following will execute
+          else{
+            try{
+              query_pairs = splitQuery(r);
+              if(query_pairs.size() == 2){
+            
+              // extract required fields from parameters
+              Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+              Integer num2 = Integer.parseInt(query_pairs.get("num2"));
 
-          // extract required fields from parameters
-          Integer num1 = Integer.parseInt(query_pairs.get("num1"));
-          Integer num2 = Integer.parseInt(query_pairs.get("num2"));
+             // do math
+              Integer result = num1 * num2;
 
-          // do math
-          Integer result = num1 * num2;
+              // Generate response
+              builder.append("HTTP/1.1 200 OK\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Result is: " + result);
+            }
+          //handling when less than 2 parameters
+          else if(query_pairs.size() < 2){
+            builder.append("HTTP/1.1 406 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Request has less than 2 parameters...");
+          }      
+          //handling for more than 2
+          else if(query_pairs.size() > 2){
+            builder.append("HTTP/1.1 406 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("Request has more than 2 parameters...");
+          } 
+            }
+            catch(Exception e){
+              builder.append("HTTP/1.1 400 Bad Request\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Not sure what you want me to do...");
 
-          // Generate response
-          builder.append("HTTP/1.1 200 OK\n");
-          builder.append("Content-Type: text/html; charset=utf-8\n");
-          builder.append("\n");
-          builder.append("Result is: " + result);
-
-          // TODO: Include error handling here with a correct error code and
-          // a response that makes sense
+            }    
+        }       
 
         } else if (request.contains("github?")) {
           // pulls the query from the request and runs it with GitHub's REST API
@@ -228,18 +265,145 @@ class WebServer {
 
           Map<String, String> query_pairs = new LinkedHashMap<String, String>();
           query_pairs = splitQuery(request.replace("github?", ""));
-          String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
-          System.out.println(json);
+            try{
+              String json = fetchURL("https://api.github.com/" + query_pairs.get("query"));
+              JSONArray jresponse = new JSONArray(json);
+          
+              String result = "";
 
-          builder.append("Check the todos mentioned in the Java source file");
-          // TODO: Parse the JSON returned by your fetch and create an appropriate
-          // response
-          // and list the owner name, owner id and name of the public repo on your webpage, e.g.
-          // amehlhase, 46384989 -> memoranda
-          // amehlhase, 46384989 -> ser316examples
-          // amehlhase, 46384989 -> test316
+              for(int i = 0; i < jresponse.length();i++){
+                result += jresponse.getJSONObject(i).getJSONObject("owner").getString("login");
+                result += jresponse.getJSONObject(i).getInt("id");
+                result += jresponse.getJSONObject(i).getString("name");
+             }
+              builder.append("HTTP/1.1 200 OK\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("Result is: " + result);
 
-        } else {
+            }catch(Exception e){
+              builder.append("HTTP/1.1 400 Bad Request\n");
+              builder.append("Content-Type: text/html; charset=utf-8\n");
+              builder.append("\n");
+              builder.append("wrong github request...");
+            }
+          
+        }
+        //Added prime request to server. Server will return prime numbers from num1 to num2
+        else if(request.contains("prime?")){
+            Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+            String r = request.replace("prime?", "");
+            query_pairs = splitQuery(request.replace("r?", ""));
+
+          //checks for empty parameters
+          if(r.length() == 0){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("You did not pass parameters...");
+          } else{
+                try{
+                  query_pairs = splitQuery(r);
+                  String result = "";
+                  if(query_pairs.size() == 2){
+                    Integer num1 = Integer.parseInt(query_pairs.get("num1"));
+                    Integer num2 = Integer.parseInt(query_pairs.get("num2"));
+                    for(int i = num1; i <= num2; i++){
+                      boolean isPrime = true;
+                      for(int j = 2; j <= i/2; j++){
+                        if(i%j == 0){
+                          isPrime = false;
+                          break;
+                        }
+                      }
+                      if(isPrime == true){
+                        result += ("" + i + ", ");
+                      }
+                    }
+                    builder.append("HTTP/1.1 200 OK\n");
+                    builder.append("Content-Type: text/html; charset=utf-8\n");
+                    builder.append("\n");
+                    builder.append("Result is: " + result);
+
+                  } else if(query_pairs.size() < 2){
+                      builder.append("HTTP/1.1 406 Bad Request\n");
+                      builder.append("Content-Type: text/html; charset=utf-8\n");
+                      builder.append("\n");
+                      builder.append("Request has less than 2 parameters...");
+                  } else if(query_pairs.size() > 2){
+                      builder.append("HTTP/1.1 406 Bad Request\n");
+                      builder.append("Content-Type: text/html; charset=utf-8\n");
+                      builder.append("\n");
+                      builder.append("Request has more than 2 parameters...");
+                  }          
+                } catch(Exception e){
+                    builder.append("HTTP/1.1 400 Bad Request\n");
+                    builder.append("Content-Type: text/html; charset=utf-8\n");
+                    builder.append("\n");
+                    builder.append("Not sure what you want me to do...");
+                }
+          }
+        }
+        //added user request 
+        else if(request.contains("programmer?")){
+          //small map with used as data based to store programmers first and last name
+          Map<String, String> programmers = new LinkedHashMap<String, String>();
+          programmers.put("Irvin", "Hernandez");
+          programmers.put("Alexandra", "Melhase");
+          programmers.put("Kyle", "Garza");
+
+          Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+          String r = request.replace("programmer?", "");
+          String result = "";
+          //handles no parameters passed
+          if(r.length() == 0){
+            builder.append("HTTP/1.1 400 Bad Request\n");
+            builder.append("Content-Type: text/html; charset=utf-8\n");
+            builder.append("\n");
+            builder.append("You did not pass parameters...");
+          } else{
+              try{
+              query_pairs = splitQuery(r);
+              String fn = query_pairs.get("fn");
+              System.out.println("value: " + fn);
+              if(r.contains("fn") || !(query_pairs.get("fn").equals(""))){
+                //handles a correct request from user 
+                if(programmers.containsKey(fn) && fn.length() > 1 ){
+                  System.out.println("value: " + fn);
+                    result += fn + " " + programmers.get(fn);
+                    builder.append("HTTP/1.1 200 OK\n");
+                    builder.append("Content-Type: text/html; charset=utf-8\n");
+                    builder.append("\n");
+                    builder.append(result + " is a programmer on this project");
+                }
+                //handles if a request is made without a first name value
+                else if (query_pairs.get("fn").equals("")) {
+                  builder.append("HTTP/1.1 400 Bad Request\n");
+                  builder.append("Content-Type: text/html; charset=utf-8\n");
+                  builder.append("\n");
+                  builder.append("you did not gave a first name");
+                } 
+                //handles bad request
+                else {
+                  builder.append("HTTP/1.1 400 Bad Request\n");
+                  builder.append("Content-Type: text/html; charset=utf-8\n");
+                  builder.append("\n");
+                  builder.append("Invalid first name");
+                }
+
+                }
+              }catch(Exception e){
+                builder.append("HTTP/1.1 400 Bad Request\n");
+               builder.append("Content-Type: text/html; charset=utf-8\n");
+                builder.append("\n");
+               builder.append("I am not sure what you want me to do...");
+              }
+              
+          }
+
+        }
+
+        else {
           // if the request is not recognized at all
 
           builder.append("HTTP/1.1 400 Bad Request\n");
