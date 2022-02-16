@@ -293,7 +293,6 @@ class WebServer {
         else if(request.contains("prime?")){
             Map<String, String> query_pairs = new LinkedHashMap<String, String>();
             String r = request.replace("prime?", "");
-            query_pairs = splitQuery(request.replace("r?", ""));
 
           //checks for empty parameters
           if(r.length() == 0){
